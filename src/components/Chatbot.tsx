@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { sendChatQuestion } from "../lib/chatApi";
 
 type Message = {
@@ -220,6 +221,7 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
                   >
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeRaw]}
                       components={{
                         p: ({ children }) => (
                           <p style={{ margin: "0 0 8px 0", textAlign: "left" }}>
