@@ -42,10 +42,25 @@ export type ChatSuccessResponse = {
 };
 
 const SESSION_KEY = "chat-session-id";
+const TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+type StoredSession = { id: string; exp: number | null };
+
+function now() {
+  return Date.now();
+}
 
 function getStoredSessionId(): string | undefined {
   try {
-    return localStorage.getItem(SESSION_KEY) ?? undefined;
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as StoredSession | string;
+    if (typeof parsed === "string") return parsed; // backwards compat
+    if (parsed.exp && parsed.exp <= now()) {
+      localStorage.removeItem(SESSION_KEY);
+      return undefined;
+    }
+    return parsed.id;
   } catch {
     return undefined;
   }
@@ -53,7 +68,11 @@ function getStoredSessionId(): string | undefined {
 
 function setStoredSessionId(id: string) {
   try {
-    localStorage.setItem(SESSION_KEY, id);
+    const exp = now() + TTL_MS;
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({ id, exp } as StoredSession)
+    );
   } catch {
     // ignore
   }
@@ -73,7 +92,9 @@ export async function sendChatQuestion(
     },
     body: JSON.stringify({
       question,
-      session_id: existingSessionId,
+      ...(existingSessionId
+        ? ({ session_id: existingSessionId } as const)
+        : {}),
     } satisfies ChatRequestBody),
   });
 
