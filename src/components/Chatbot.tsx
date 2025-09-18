@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { sendChatQuestion } from "../lib/chatApi";
+import { setStoredUserInfo } from "../helpers/session";
 
 type Message = {
   id: string;
@@ -15,6 +16,11 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userPhone, setUserPhone] = useState("");
+  const [userError, setUserError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +38,9 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
 
     try {
       const res = await sendChatQuestion(trimmed);
+      if (res.requiresUserInfo) {
+        setShowUserModal(true);
+      }
       const normalizeMarkdown = (text: string) =>
         text
           // Replace bullet • or \u2022 at start of lines with markdown dashes
@@ -64,6 +73,24 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
           behavior: "smooth",
         });
       });
+    }
+  };
+
+  const handleUserModalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUserError(null);
+    const name = userName.trim();
+    const email = userEmail.trim();
+    const phone = userPhone.trim();
+    if (!name || !email || !phone) {
+      setUserError("Please fill all fields.");
+      return;
+    }
+    try {
+      setStoredUserInfo({ name, email, phone });
+      setShowUserModal(false);
+    } catch {
+      setUserError("Could not save details. Try again.");
     }
   };
 
@@ -346,6 +373,266 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
           {isLoading ? "⏳" : "➤"}
         </button>
       </form>
+
+      {showUserModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse at center, rgba(102,126,234,0.18), rgba(0,0,0,0.55))",
+            backdropFilter: "blur(2px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
+            padding: 8,
+          }}
+          onClick={() => setShowUserModal(false)}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              width: "100%",
+              maxWidth: 420,
+              borderRadius: 16,
+              boxShadow:
+                "0 20px 40px rgba(102, 126, 234, 0.25), 0 6px 12px rgba(0,0,0,0.1)",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                padding: "14px 18px",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ fontWeight: 700 }}>Complete your details</div>
+              <button
+                type="button"
+                onClick={() => setShowUserModal(false)}
+                aria-label="Close"
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "white",
+                  fontSize: 18,
+                  cursor: "pointer",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleUserModalSubmit}
+              style={{ padding: "8px", color: "#0f172a" }}
+            >
+              <p style={{ margin: 0, marginBottom: 10, color: "#334155" }}>
+                Please enter your details so we can personalize your support.
+              </p>
+              <div style={{ display: "grid", gap: 10 }}>
+                <div>
+                  <label
+                    htmlFor="bg-user-name"
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      color: "#64748b",
+                      textAlign: "start",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Name
+                  </label>
+                  <input
+                    id="bg-user-name"
+                    placeholder="John Doe"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "10px 8px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 10,
+                      outline: "none",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      caretColor: "#667eea",
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.border = "1px solid #667eea";
+                      e.currentTarget.style.background = "#ffffff";
+                      e.currentTarget.style.boxShadow =
+                        "0 0 0 3px rgba(102, 126, 234, 0.15)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.border = "1px solid #e2e8f0";
+                      e.currentTarget.style.background = "#f8fafc";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="bg-user-email"
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      color: "#64748b",
+                      textAlign: "start",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="bg-user-email"
+                    placeholder="you@company.com"
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "10px 8px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 10,
+                      outline: "none",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      caretColor: "#667eea",
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.border = "1px solid #667eea";
+                      e.currentTarget.style.background = "#ffffff";
+                      e.currentTarget.style.boxShadow =
+                        "0 0 0 3px rgba(102, 126, 234, 0.15)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.border = "1px solid #e2e8f0";
+                      e.currentTarget.style.background = "#f8fafc";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="bg-user-phone"
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      color: "#64748b",
+                      textAlign: "start",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Phone
+                  </label>
+                  <input
+                    id="bg-user-phone"
+                    placeholder="+91 98765 43210"
+                    value={userPhone}
+                    onChange={(e) => setUserPhone(e.target.value)}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "10px 8px",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 10,
+                      outline: "none",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      caretColor: "#667eea",
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.border = "1px solid #667eea";
+                      e.currentTarget.style.background = "#ffffff";
+                      e.currentTarget.style.boxShadow =
+                        "0 0 0 3px rgba(102, 126, 234, 0.15)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.border = "1px solid #e2e8f0";
+                      e.currentTarget.style.background = "#f8fafc";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  />
+                </div>
+              </div>
+
+              {userError && (
+                <div style={{ color: "#b91c1c", fontSize: 12, marginTop: 6 }}>
+                  {userError}
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  justifyContent: "flex-end",
+                  marginTop: 14,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowUserModal(false)}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid #e2e8f0",
+                    background: "#ffffff",
+                    color: "#334155",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#f8fafc";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#ffffff";
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "none",
+                    background:
+                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    color: "#ffffff",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    boxShadow: "0 6px 14px rgba(102, 126, 234, 0.35)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 10px 18px rgba(102, 126, 234, 0.45)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 6px 14px rgba(102, 126, 234, 0.35)";
+                  }}
+                >
+                  Save details
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

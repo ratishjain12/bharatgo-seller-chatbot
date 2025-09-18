@@ -1,6 +1,22 @@
+import { getUserInfo } from "../helpers";
+import {
+  getStoredSessionId,
+  setStoredSessionId,
+  setStoredUserInfo,
+  touchStoredSession,
+  clearStoredSession,
+  getStoredObj,
+} from "../helpers/session";
+
 export type ChatRequestBody = {
   question: string;
   session_id?: string;
+  user_info?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    [k: string]: unknown;
+  };
 };
 
 export type ChatRawResponse = {
@@ -41,47 +57,22 @@ export type ChatSuccessResponse = {
   hasContactForm?: boolean;
 };
 
-const SESSION_KEY = "chat-session-id";
-const TTL_MS = 15 * 60 * 1000; // 15 minutes
-
-type StoredSession = { id: string; exp: number | null };
-
-function now() {
-  return Date.now();
-}
-
-function getStoredSessionId(): string | undefined {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return undefined;
-    const parsed = JSON.parse(raw) as StoredSession | string;
-    if (typeof parsed === "string") return parsed; // backwards compat
-    if (parsed.exp && parsed.exp <= now()) {
-      localStorage.removeItem(SESSION_KEY);
-      return undefined;
-    }
-    return parsed.id;
-  } catch {
-    return undefined;
-  }
-}
-
-function setStoredSessionId(id: string) {
-  try {
-    const exp = now() + TTL_MS;
-    localStorage.setItem(
-      SESSION_KEY,
-      JSON.stringify({ id, exp } as StoredSession)
-    );
-  } catch {
-    // ignore
-  }
-}
-
 export async function sendChatQuestion(
   question: string
 ): Promise<ChatSuccessResponse> {
   const url = import.meta.env.VITE_CHAT_API_URL;
+
+  let user_info: ChatRequestBody["user_info"] | null = null;
+  try {
+    const token = localStorage.getItem("token");
+    if (token) {
+      user_info = await getUserInfo();
+    } else {
+      user_info = getStoredObj()?.userInfo ?? null;
+    }
+  } catch {
+    user_info = getStoredObj()?.userInfo ?? null;
+  }
 
   const existingSessionId = getStoredSessionId();
 
@@ -95,10 +86,14 @@ export async function sendChatQuestion(
       ...(existingSessionId
         ? ({ session_id: existingSessionId } as const)
         : {}),
+      ...(user_info ? ({ user_info: user_info } as const) : {}),
     } satisfies ChatRequestBody),
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 440) {
+      clearStoredSession();
+    }
     const errorText = await response.text().catch(() => "");
     throw new Error(
       `Request failed: ${response.status} ${response.statusText} ${errorText}`
@@ -108,7 +103,14 @@ export async function sendChatQuestion(
   const data = (await response.json()) as ChatRawResponse;
 
   if (data.session_id && data.session_id !== existingSessionId) {
-    setStoredSessionId(data.session_id);
+    setStoredSessionId(data.session_id, { resetUserInfo: true });
+  } else if (existingSessionId) {
+    touchStoredSession();
+  }
+
+  const prev = getStoredObj()?.userInfo;
+  if (user_info && JSON.stringify(prev) !== JSON.stringify(user_info)) {
+    setStoredUserInfo(user_info);
   }
 
   return {
