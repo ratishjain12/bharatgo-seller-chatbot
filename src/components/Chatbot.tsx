@@ -8,12 +8,7 @@ import {
   getStoredChatHistory,
   addStoredChatMessage,
 } from "../helpers/session";
-
-type Message = {
-  id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-};
+import type { Message } from "../types";
 
 export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
   // Initialize messages from stored history
@@ -57,7 +52,7 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
           window.clearTimeout(userModalTimerRef.current);
         userModalTimerRef.current = window.setTimeout(() => {
           setShowUserModal(true);
-        }, 3000);
+        }, 2000);
       }
       const normalizeMarkdown = (text: string) =>
         text.replace(/^[\t ]*[•\u2022][\t ]?/gm, "- ").replace(/\r\n/g, "\n");
