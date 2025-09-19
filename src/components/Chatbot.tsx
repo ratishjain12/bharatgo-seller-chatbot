@@ -542,7 +542,7 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
                   </label>
                   <input
                     id="bg-user-phone"
-                    placeholder="+91 98765 43210"
+                    placeholder="+91 98765 XXXXX"
                     value={userPhone}
                     onChange={(e) => setUserPhone(e.target.value)}
                     style={{
