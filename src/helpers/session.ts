@@ -1,5 +1,6 @@
 export const SESSION_KEY = "chat-session-id";
 export const TTL_MS = 15 * 60 * 1000; // 15 minutes
+const PENDING_HISTORY_KEY = "chat:history:pending";
 
 export type StoredSession = {
   id: string;
@@ -41,6 +42,31 @@ export function getStoredSessionId(): string | undefined {
   return getStoredObj()?.id;
 }
 
+function getPendingHistory(): NonNullable<StoredSession["chatHistory"]> {
+  try {
+    const raw = localStorage.getItem(PENDING_HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as StoredSession["chatHistory"]) ?? [] : [];
+  } catch {
+    return [];
+  }
+}
+
+function setPendingHistory(history: StoredSession["chatHistory"]) {
+  try {
+    localStorage.setItem(PENDING_HISTORY_KEY, JSON.stringify(history ?? []));
+  } catch {
+    // ignore
+  }
+}
+
+function clearPendingHistory() {
+  try {
+    localStorage.removeItem(PENDING_HISTORY_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export function setStoredSessionId(
   id: string,
   opts?: { resetUserInfo?: boolean }
@@ -48,12 +74,15 @@ export function setStoredSessionId(
   try {
     const exp = now() + TTL_MS;
     const prev = getStoredObj();
+    const pending = getPendingHistory();
     const next: StoredSession = {
       id,
       exp,
       userInfo: opts?.resetUserInfo ? undefined : prev?.userInfo,
+      chatHistory: pending.length > 0 ? pending : prev?.chatHistory,
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+    if (pending.length > 0) clearPendingHistory();
   } catch {
     // ignore
   }
@@ -90,13 +119,18 @@ export function touchStoredSession() {
 }
 
 export function getStoredChatHistory(): StoredSession["chatHistory"] {
-  return getStoredObj()?.chatHistory ?? [];
+  const obj = getStoredObj();
+  if (obj?.id) return obj.chatHistory ?? [];
+  return getPendingHistory();
 }
 
 export function setStoredChatHistory(history: StoredSession["chatHistory"]) {
   try {
     const prev = getStoredObj();
-    if (!prev?.id) return;
+    if (!prev?.id) {
+      setPendingHistory(history ?? []);
+      return;
+    }
     const next: StoredSession = { ...prev, chatHistory: history };
     localStorage.setItem(SESSION_KEY, JSON.stringify(next));
   } catch {
@@ -111,7 +145,12 @@ export function addStoredChatMessage(message: {
 }) {
   try {
     const prev = getStoredObj();
-    if (!prev?.id) return;
+    if (!prev?.id) {
+      // Buffer in pending until a session exists
+      const pending = getPendingHistory();
+      setPendingHistory([...pending, message].slice(-50));
+      return;
+    }
     const history = prev.chatHistory ?? [];
     const next: StoredSession = {
       ...prev,

@@ -105,8 +105,9 @@ export async function sendChatQuestion(
 
   if (data.session_id && data.session_id !== existingSessionId) {
     setStoredSessionId(data.session_id, { resetUserInfo: true });
-    // Clear chat history for new session
-    setStoredChatHistory([]);
+    if (existingSessionId) {
+      setStoredChatHistory([]);
+    }
   } else if (existingSessionId) {
     touchStoredSession();
   }

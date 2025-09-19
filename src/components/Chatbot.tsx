@@ -28,6 +28,12 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
   const [userEmail, setUserEmail] = useState("");
   const [userPhone, setUserPhone] = useState("");
   const [userError, setUserError] = useState<string | null>(null);
+  const [userFieldErrors, setUserFieldErrors] = useState({
+    name: false,
+    email: false,
+    phone: false,
+  });
+  const userModalTimerRef = useRef<number | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,20 +46,21 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
       content: trimmed,
     };
     setMessages((prev) => [...prev, userMessage]);
-    addStoredChatMessage(userMessage); // Save to storage
+    addStoredChatMessage(userMessage);
     setInput("");
     setIsLoading(true);
 
     try {
       const res = await sendChatQuestion(trimmed);
       if (res.requiresUserInfo) {
-        setShowUserModal(true);
+        if (userModalTimerRef.current)
+          window.clearTimeout(userModalTimerRef.current);
+        userModalTimerRef.current = window.setTimeout(() => {
+          setShowUserModal(true);
+        }, 3000);
       }
       const normalizeMarkdown = (text: string) =>
-        text
-          // Replace bullet • or \u2022 at start of lines with markdown dashes
-          .replace(/^[\t ]*[•\u2022][\t ]?/gm, "- ")
-          .replace(/\r\n/g, "\n");
+        text.replace(/^[\t ]*[•\u2022][\t ]?/gm, "- ").replace(/\r\n/g, "\n");
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -62,7 +69,7 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
           : "No answer returned.",
       };
       setMessages((prev) => [...prev, assistantMessage]);
-      addStoredChatMessage(assistantMessage); // Save to storage
+      addStoredChatMessage(assistantMessage);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       const errorMsg: Message = {
@@ -83,10 +90,19 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
     const name = userName.trim();
     const email = userEmail.trim();
     const phone = userPhone.trim();
-    if (!name || !email || !phone) {
-      setUserError("Please fill all fields.");
+
+    const nextErrors = {
+      name: !name,
+      email: !email,
+      phone: !phone,
+    };
+    setUserFieldErrors(nextErrors);
+
+    if (nextErrors.name || nextErrors.email || nextErrors.phone) {
+      setUserError("All fields are required.");
       return;
     }
+
     try {
       setStoredUserInfo({ name, email, phone });
       setShowUserModal(false);
@@ -100,7 +116,6 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
     [isLoading]
   );
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTo({
@@ -109,6 +124,13 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
       });
     }
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      if (userModalTimerRef.current)
+        window.clearTimeout(userModalTimerRef.current);
+    };
+  }, []);
 
   return (
     <div
@@ -466,12 +488,23 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
                     id="bg-user-name"
                     placeholder="John Doe"
                     value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
+                    onChange={(e) => {
+                      setUserName(e.target.value);
+                      if (userFieldErrors.name && e.target.value.trim()) {
+                        setUserFieldErrors((prev) => ({
+                          ...prev,
+                          name: false,
+                        }));
+                      }
+                    }}
+                    required
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
                       padding: "10px 8px",
-                      border: "1px solid #e2e8f0",
+                      border: userFieldErrors.name
+                        ? "1px solid #ef4444"
+                        : "1px solid #e2e8f0",
                       borderRadius: 10,
                       outline: "none",
                       background: "#f8fafc",
@@ -490,6 +523,13 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
                       e.currentTarget.style.boxShadow = "none";
                     }}
                   />
+                  {userFieldErrors.name && (
+                    <div
+                      style={{ color: "#b91c1c", fontSize: 11, marginTop: 4 }}
+                    >
+                      Name is required
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -510,12 +550,23 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
                     placeholder="you@company.com"
                     type="email"
                     value={userEmail}
-                    onChange={(e) => setUserEmail(e.target.value)}
+                    onChange={(e) => {
+                      setUserEmail(e.target.value);
+                      if (userFieldErrors.email && e.target.value.trim()) {
+                        setUserFieldErrors((prev) => ({
+                          ...prev,
+                          email: false,
+                        }));
+                      }
+                    }}
+                    required
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
                       padding: "10px 8px",
-                      border: "1px solid #e2e8f0",
+                      border: userFieldErrors.email
+                        ? "1px solid #ef4444"
+                        : "1px solid #e2e8f0",
                       borderRadius: 10,
                       outline: "none",
                       background: "#f8fafc",
@@ -534,6 +585,13 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
                       e.currentTarget.style.boxShadow = "none";
                     }}
                   />
+                  {userFieldErrors.email && (
+                    <div
+                      style={{ color: "#b91c1c", fontSize: 11, marginTop: 4 }}
+                    >
+                      Email is required
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -553,12 +611,23 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
                     id="bg-user-phone"
                     placeholder="+91 98765 XXXXX"
                     value={userPhone}
-                    onChange={(e) => setUserPhone(e.target.value)}
+                    onChange={(e) => {
+                      setUserPhone(e.target.value);
+                      if (userFieldErrors.phone && e.target.value.trim()) {
+                        setUserFieldErrors((prev) => ({
+                          ...prev,
+                          phone: false,
+                        }));
+                      }
+                    }}
+                    required
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
                       padding: "10px 8px",
-                      border: "1px solid #e2e8f0",
+                      border: userFieldErrors.phone
+                        ? "1px solid #ef4444"
+                        : "1px solid #e2e8f0",
                       borderRadius: 10,
                       outline: "none",
                       background: "#f8fafc",
@@ -577,6 +646,13 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
                       e.currentTarget.style.boxShadow = "none";
                     }}
                   />
+                  {userFieldErrors.phone && (
+                    <div
+                      style={{ color: "#b91c1c", fontSize: 11, marginTop: 4 }}
+                    >
+                      Phone is required
+                    </div>
+                  )}
                 </div>
               </div>
 
