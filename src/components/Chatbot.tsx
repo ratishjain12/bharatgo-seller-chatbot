@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -66,13 +66,6 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
       ]);
     } finally {
       setIsLoading(false);
-      // scroll to bottom
-      queueMicrotask(() => {
-        listRef.current?.scrollTo({
-          top: listRef.current.scrollHeight,
-          behavior: "smooth",
-        });
-      });
     }
   };
 
@@ -98,6 +91,16 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
     () => (isLoading ? "Waiting for response..." : "Ask something..."),
     [isLoading]
   );
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTo({
+        top: listRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages]);
 
   return (
     <div
