@@ -14,7 +14,7 @@ export async function getUserInfo() {
   const data = await response.json();
   return {
     name: data.vendor_name,
-    phone: data.vendor_phone,
-    email: data.vendor_email,
+    phone: data.registered_mobileno,
+    email: data.vendor_emailid,
   };
 }
