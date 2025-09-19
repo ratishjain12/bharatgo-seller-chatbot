@@ -106,6 +106,13 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
     try {
       setStoredUserInfo({ name, email, phone });
       setShowUserModal(false);
+      const savedMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `Hi ${name}, how can I help you today?`,
+      };
+      setMessages((prev) => [...prev, savedMessage]);
+      addStoredChatMessage(savedMessage);
     } catch {
       setUserError("Could not save details. Try again.");
     }
