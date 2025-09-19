@@ -6,6 +6,7 @@ import {
   touchStoredSession,
   clearStoredSession,
   getStoredObj,
+  setStoredChatHistory,
 } from "../helpers/session";
 
 export type ChatRequestBody = {
@@ -104,6 +105,8 @@ export async function sendChatQuestion(
 
   if (data.session_id && data.session_id !== existingSessionId) {
     setStoredSessionId(data.session_id, { resetUserInfo: true });
+    // Clear chat history for new session
+    setStoredChatHistory([]);
   } else if (existingSessionId) {
     touchStoredSession();
   }

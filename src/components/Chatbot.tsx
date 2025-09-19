@@ -3,7 +3,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { sendChatQuestion } from "../lib/chatApi";
-import { setStoredUserInfo } from "../helpers/session";
+import {
+  setStoredUserInfo,
+  getStoredChatHistory,
+  addStoredChatMessage,
+} from "../helpers/session";
 
 type Message = {
   id: string;
@@ -12,7 +16,10 @@ type Message = {
 };
 
 export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Initialize messages from stored history
+  const [messages, setMessages] = useState<Message[]>(() => {
+    return getStoredChatHistory() as Message[];
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -33,6 +40,7 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
       content: trimmed,
     };
     setMessages((prev) => [...prev, userMessage]);
+    addStoredChatMessage(userMessage); // Save to storage
     setInput("");
     setIsLoading(true);
 
@@ -54,16 +62,16 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
           : "No answer returned.",
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      addStoredChatMessage(assistantMessage); // Save to storage
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "system",
-          content: `Error: ${errorMessage}`,
-        },
-      ]);
+      const errorMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "system",
+        content: `Error: ${errorMessage}`,
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+      addStoredChatMessage(errorMsg); // Save to storage
     } finally {
       setIsLoading(false);
     }

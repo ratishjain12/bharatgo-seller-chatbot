@@ -10,6 +10,11 @@ export type StoredSession = {
     phone?: string;
     [k: string]: unknown;
   };
+  chatHistory?: Array<{
+    id: string;
+    role: "user" | "assistant" | "system";
+    content: string;
+  }>;
 };
 
 function now() {
@@ -78,6 +83,40 @@ export function touchStoredSession() {
     const prev = getStoredObj();
     if (!prev?.id) return;
     const next: StoredSession = { ...prev, exp: now() + TTL_MS };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+}
+
+export function getStoredChatHistory(): StoredSession["chatHistory"] {
+  return getStoredObj()?.chatHistory ?? [];
+}
+
+export function setStoredChatHistory(history: StoredSession["chatHistory"]) {
+  try {
+    const prev = getStoredObj();
+    if (!prev?.id) return;
+    const next: StoredSession = { ...prev, chatHistory: history };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+}
+
+export function addStoredChatMessage(message: {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+}) {
+  try {
+    const prev = getStoredObj();
+    if (!prev?.id) return;
+    const history = prev.chatHistory ?? [];
+    const next: StoredSession = {
+      ...prev,
+      chatHistory: [...history, message].slice(-50), // Keep last 50 messages
+    };
     localStorage.setItem(SESSION_KEY, JSON.stringify(next));
   } catch {
     // ignore
