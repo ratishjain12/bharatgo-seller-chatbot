@@ -447,7 +447,7 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
             borderRadius: 24,
             border: "2px solid #e2e8f0",
             outline: "none",
-            fontSize: "14px",
+            fontSize: "16px",
             background: "#f8fafc",
             color: "#1f2937",
             transition: "all 0.2s ease",
