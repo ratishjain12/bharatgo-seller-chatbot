@@ -160,7 +160,7 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
       <div
         style={{
           padding: "16px 20px",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          background: "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)",
           color: "white",
           display: "flex",
           alignItems: "center",
@@ -284,9 +284,9 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                 <div
                   style={{
                     maxWidth: "80%",
-                    background:
-                      m.role === "user"
-                        ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                background:
+                  m.role === "user"
+                    ? "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)"
                         : m.role === "assistant"
                         ? "#ffffff"
                         : "#fef3c7",
@@ -297,7 +297,7 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                     boxShadow:
                       m.role === "assistant"
                         ? "0 2px 8px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)"
-                        : "0 2px 8px rgba(102, 126, 234, 0.3)",
+                    : "0 2px 8px rgba(59, 130, 246, 0.3)",
                     border:
                       m.role === "assistant"
                         ? "1px solid rgba(0,0,0,0.05)"
@@ -454,9 +454,9 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
             resize: "none",
           }}
           onFocus={(e) => {
-            e.target.style.borderColor = "#667eea";
+            e.target.style.borderColor = "#3B82F6";
             e.target.style.background = "#ffffff";
-            e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+            e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1)";
           }}
           onBlur={(e) => {
             e.target.style.borderColor = "#e2e8f0";
@@ -474,7 +474,7 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
             background:
               isLoading || !input.trim()
                 ? "linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)"
-                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                : "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)",
             color: "white",
             cursor: isLoading || !input.trim() ? "not-allowed" : "pointer",
             fontSize: "14px",
@@ -483,20 +483,20 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
             boxShadow:
               isLoading || !input.trim()
                 ? "none"
-                : "0 4px 12px rgba(102, 126, 234, 0.4)",
+                : "0 4px 12px rgba(59, 130, 246, 0.4)",
           }}
           onMouseEnter={(e) => {
             if (!isLoading && input.trim()) {
               e.currentTarget.style.transform = "translateY(-1px)";
               e.currentTarget.style.boxShadow =
-                "0 6px 16px rgba(102, 126, 234, 0.5)";
+                "0 6px 16px rgba(59, 130, 246, 0.5)";
             }
           }}
           onMouseLeave={(e) => {
             if (!isLoading && input.trim()) {
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.boxShadow =
-                "0 4px 12px rgba(102, 126, 234, 0.4)";
+                "0 4px 12px rgba(59, 130, 246, 0.4)";
             }
           }}
         >
@@ -525,7 +525,7 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
             position: "fixed",
             inset: 0,
             background:
-              "radial-gradient(ellipse at center, rgba(102,126,234,0.18), rgba(0,0,0,0.55))",
+              "radial-gradient(ellipse at center, rgba(59,130,246,0.18), rgba(0,0,0,0.55))",
             backdropFilter: "blur(2px)",
             display: "flex",
             alignItems: "center",
@@ -550,7 +550,7 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
             <div
               style={{
                 padding: "14px 18px",
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                background: "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)",
                 color: "white",
                 display: "flex",
                 alignItems: "center",
@@ -620,13 +620,13 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                       outline: "none",
                       background: "#f8fafc",
                       color: "#0f172a",
-                      caretColor: "#667eea",
+                      caretColor: "#3B82F6",
                     }}
                     onFocus={(e) => {
-                      e.currentTarget.style.border = "1px solid #667eea";
+                      e.currentTarget.style.border = "1px solid #3B82F6";
                       e.currentTarget.style.background = "#ffffff";
                       e.currentTarget.style.boxShadow =
-                        "0 0 0 3px rgba(102, 126, 234, 0.15)";
+                        "0 0 0 3px rgba(59, 130, 246, 0.15)";
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.border = "1px solid #e2e8f0";
@@ -682,13 +682,13 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                       outline: "none",
                       background: "#f8fafc",
                       color: "#0f172a",
-                      caretColor: "#667eea",
+                      caretColor: "#3B82F6",
                     }}
                     onFocus={(e) => {
-                      e.currentTarget.style.border = "1px solid #667eea";
+                      e.currentTarget.style.border = "1px solid #3B82F6";
                       e.currentTarget.style.background = "#ffffff";
                       e.currentTarget.style.boxShadow =
-                        "0 0 0 3px rgba(102, 126, 234, 0.15)";
+                        "0 0 0 3px rgba(59, 130, 246, 0.15)";
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.border = "1px solid #e2e8f0";
@@ -743,13 +743,13 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                       outline: "none",
                       background: "#f8fafc",
                       color: "#0f172a",
-                      caretColor: "#667eea",
+                      caretColor: "#3B82F6",
                     }}
                     onFocus={(e) => {
-                      e.currentTarget.style.border = "1px solid #667eea";
+                      e.currentTarget.style.border = "1px solid #3B82F6";
                       e.currentTarget.style.background = "#ffffff";
                       e.currentTarget.style.boxShadow =
-                        "0 0 0 3px rgba(102, 126, 234, 0.15)";
+                        "0 0 0 3px rgba(59, 130, 246, 0.15)";
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.border = "1px solid #e2e8f0";
@@ -808,21 +808,21 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                     borderRadius: 10,
                     border: "none",
                     background:
-                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)",
                     color: "#ffffff",
                     fontWeight: 700,
                     cursor: "pointer",
-                    boxShadow: "0 6px 14px rgba(102, 126, 234, 0.35)",
+                    boxShadow: "0 6px 14px rgba(59, 130, 246, 0.35)",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-1px)";
                     e.currentTarget.style.boxShadow =
-                      "0 10px 18px rgba(102, 126, 234, 0.45)";
+                      "0 10px 18px rgba(59, 130, 246, 0.45)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = "translateY(0)";
                     e.currentTarget.style.boxShadow =
-                      "0 6px 14px rgba(102, 126, 234, 0.35)";
+                      "0 6px 14px rgba(59, 130, 246, 0.35)";
                   }}
                 >
                   Save details

@@ -44,11 +44,11 @@ export default function ChatWidget() {
           minWidth: isMobile ? 52 : 60,
           minHeight: isMobile ? 52 : 60,
           borderRadius: "50%",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          background: "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)",
           color: "white",
           border: "none",
           boxShadow:
-            "0 8px 32px rgba(102, 126, 234, 0.4), 0 0 0 1px rgba(255,255,255,0.1)",
+            "0 8px 32px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(255,255,255,0.1)",
           cursor: "pointer",
           zIndex: 2147483000,
           display: "flex",
@@ -66,12 +66,12 @@ export default function ChatWidget() {
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = "scale(1.1)";
           e.currentTarget.style.boxShadow =
-            "0 12px 40px rgba(102, 126, 234, 0.6), 0 0 0 1px rgba(255,255,255,0.2)";
+            "0 12px 40px rgba(59, 130, 246, 0.6), 0 0 0 1px rgba(255,255,255,0.2)";
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = "scale(1)";
           e.currentTarget.style.boxShadow =
-            "0 8px 32px rgba(102, 126, 234, 0.4), 0 0 0 1px rgba(255,255,255,0.1)";
+            "0 8px 32px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(255,255,255,0.1)";
         }}
       >
         <span
