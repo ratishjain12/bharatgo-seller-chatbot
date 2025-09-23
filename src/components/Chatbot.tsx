@@ -10,8 +10,7 @@ import {
 } from "../helpers/session";
 import type { Message } from "../types";
 
-export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
-  // Initialize messages from stored history
+export default function Chatbot({ embedded = false, onClose }: { embedded?: boolean; onClose?: () => void }) {
   const [messages, setMessages] = useState<Message[]>(() => {
     return getStoredChatHistory() as Message[];
   });
@@ -134,21 +133,29 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
     };
   }, []);
 
+  const isSmallViewport = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+
   return (
     <div
       style={{
-        height: embedded ? "100%" : 540,
+        height: embedded ? "100%" : isSmallViewport ? "100vh" : 540,
         width: embedded ? "100%" : "100%",
-        maxWidth: embedded ? undefined : 720,
-        margin: embedded ? 0 : "24px auto",
-        border: embedded ? "none" : "1px solid #e5e7eb",
-        borderRadius: embedded ? 0 : 12,
-        boxShadow: embedded ? "none" : "0 12px 24px rgba(0,0,0,0.08)",
+        maxWidth: embedded ? undefined : isSmallViewport ? "100%" : 720,
+        margin: embedded ? 0 : isSmallViewport ? 0 : "24px auto",
+        border: "none",
+        borderRadius: embedded ? 0 : isSmallViewport ? 0 : 12,
+        boxShadow: embedded ? "none" : isSmallViewport ? "none" : "0 12px 24px rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
         background: "#ffffff",
       }}
     >
+      <style>
+        {`@keyframes bg-typing-bounce { 0%, 80%, 100% { transform: scale(0); opacity: .4 } 40% { transform: scale(1); opacity: 1 } }`}
+      </style>
+      <style>
+        {`@keyframes bg-spin { to { transform: rotate(360deg); } }`}
+      </style>
       {/* Header */}
       <div
         style={{
@@ -174,7 +181,8 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
           <span style={{ fontSize: "20px" }}>🚀</span>
           BharatGo
         </div>
-        {isLoading && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {isLoading && (
           <div
             style={{
               fontSize: 12,
@@ -212,7 +220,28 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
               }}
             ></div>
           </div>
-        )}
+          )}
+          {embedded && onClose && (
+            <button
+              type="button"
+              aria-label="Close chat"
+              onClick={onClose}
+              style={{
+                marginLeft: 8,
+                border: "none",
+                background: "transparent",
+                color: "white",
+                fontSize: 20,
+                borderRadius: 8,
+                padding: 6,
+                lineHeight: 1,
+                cursor: "pointer",
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -242,91 +271,156 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
             Ask me anything about our services.
           </div>
         ) : (
-          messages.map((m) => (
-            <div
-              key={m.id}
-              style={{
-                display: "flex",
-                justifyContent: m.role === "user" ? "flex-end" : "flex-start",
-                marginBottom: 8,
-              }}
-            >
+          <>
+            {messages.map((m) => (
               <div
+                key={m.id}
                 style={{
-                  maxWidth: "80%",
-                  background:
-                    m.role === "user"
-                      ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                      : m.role === "assistant"
-                      ? "#ffffff"
-                      : "#fef3c7",
-                  color: m.role === "user" ? "white" : "#1f2937",
-                  padding: "12px 16px",
-                  borderRadius: 16,
-                  textAlign: "left",
-                  boxShadow:
-                    m.role === "assistant"
-                      ? "0 2px 8px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)"
-                      : "0 2px 8px rgba(102, 126, 234, 0.3)",
-                  border:
-                    m.role === "assistant"
-                      ? "1px solid rgba(0,0,0,0.05)"
-                      : "none",
+                  display: "flex",
+                  justifyContent: m.role === "user" ? "flex-end" : "flex-start",
+                  marginBottom: 8,
                 }}
               >
-                {m.role === "assistant" || m.role === "system" ? (
-                  <div
-                    style={{
-                      color: "black",
-                      background: "transparent",
-                      textAlign: "left",
-                    }}
-                  >
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
-                      components={{
-                        p: ({ children }) => (
-                          <p style={{ margin: "0 0 8px 0", textAlign: "left" }}>
-                            {children}
-                          </p>
-                        ),
-                        ul: ({ children }) => (
-                          <ul
-                            style={{
-                              margin: "0 0 8px 0",
-                              paddingLeft: "20px",
-                              textAlign: "left",
-                            }}
-                          >
-                            {children}
-                          </ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol
-                            style={{
-                              margin: "0 0 8px 0",
-                              paddingLeft: "20px",
-                              textAlign: "left",
-                            }}
-                          >
-                            {children}
-                          </ol>
-                        ),
-                        li: ({ children }) => (
-                          <li style={{ textAlign: "left" }}>{children}</li>
-                        ),
+                <div
+                  style={{
+                    maxWidth: "80%",
+                    background:
+                      m.role === "user"
+                        ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                        : m.role === "assistant"
+                        ? "#ffffff"
+                        : "#fef3c7",
+                    color: m.role === "user" ? "white" : "#1f2937",
+                    padding: "12px 16px",
+                    borderRadius: 16,
+                    textAlign: "left",
+                    boxShadow:
+                      m.role === "assistant"
+                        ? "0 2px 8px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)"
+                        : "0 2px 8px rgba(102, 126, 234, 0.3)",
+                    border:
+                      m.role === "assistant"
+                        ? "1px solid rgba(0,0,0,0.05)"
+                        : "none",
+                  }}
+                >
+                  {m.role === "assistant" || m.role === "system" ? (
+                    <div
+                      style={{
+                        color: "black",
+                        background: "transparent",
+                        textAlign: "left",
                       }}
                     >
-                      {m.content}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span>
-                )}
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                        components={{
+                          p: ({ children }) => (
+                            <p style={{ margin: "0 0 8px 0", textAlign: "left" }}>
+                              {children}
+                            </p>
+                          ),
+                          ul: ({ children }) => (
+                            <ul
+                              style={{
+                                margin: "0 0 8px 0",
+                                paddingLeft: "20px",
+                                textAlign: "left",
+                              }}
+                            >
+                              {children}
+                            </ul>
+                          ),
+                          ol: ({ children }) => (
+                            <ol
+                              style={{
+                                margin: "0 0 8px 0",
+                                paddingLeft: "20px",
+                                textAlign: "left",
+                              }}
+                            >
+                              {children}
+                            </ol>
+                          ),
+                          li: ({ children }) => (
+                            <li style={{ textAlign: "left" }}>{children}</li>
+                          ),
+                        }}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+            {isLoading && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{
+                    maxWidth: "80%",
+                    background: "#ffffff",
+                    color: "#1f2937",
+                    padding: "12px 16px",
+                    borderRadius: 16,
+                    textAlign: "left",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)",
+                    border: "1px solid rgba(0,0,0,0.05)",
+                  }}
+                >
+                  <span
+                    aria-label="Assistant is typing"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      height: 12,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#4b5563",
+                        animation: "bg-typing-bounce 1.2s infinite ease-in-out",
+                      }}
+                    />
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#4b5563",
+                        animation: "bg-typing-bounce 1.2s infinite ease-in-out",
+                        animationDelay: "0.2s",
+                      }}
+                    />
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#4b5563",
+                        animation: "bg-typing-bounce 1.2s infinite ease-in-out",
+                        animationDelay: "0.4s",
+                      }}
+                    />
+                  </span>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -406,7 +500,22 @@ export default function Chatbot({ embedded = false }: { embedded?: boolean }) {
             }
           }}
         >
-          {isLoading ? "⏳" : "➤"}
+          {isLoading ? (
+            <span
+              aria-hidden
+              style={{
+                display: "inline-block",
+                width: 16,
+                height: 16,
+                border: "2px solid rgba(255,255,255,0.5)",
+                borderTopColor: "#ffffff",
+                borderRadius: "50%",
+                animation: "bg-spin 0.8s linear infinite",
+              }}
+            />
+          ) : (
+            "➤"
+          )}
         </button>
       </form>
 

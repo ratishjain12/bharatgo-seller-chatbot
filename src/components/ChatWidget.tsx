@@ -1,23 +1,48 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Chatbot from "./Chatbot";
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 640px)").matches
+      : false
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 640px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    // Safari <14 support
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", handler);
+    } else {
+      mql.addListener(handler);
+    }
+    setIsMobile(mql.matches);
+    return () => {
+      if (typeof mql.removeEventListener === "function") {
+        mql.removeEventListener("change", handler);
+      } else {
+        mql.removeListener(handler);
+      }
+    };
+  }, []);
 
   return (
     <>
       {/* Floating Button */}
+      {!(open && isMobile) && (
       <button
         aria-label="Open chat"
         onClick={() => setOpen((v) => !v)}
         style={{
           position: "fixed",
-          right: 24,
-          bottom: 24,
-          width: 60,
-          height: 60,
-          minWidth: 60,
-          minHeight: 60,
+          right: isMobile ? 16 : 24,
+          bottom: isMobile ? 16 : 24,
+          width: isMobile ? 52 : 60,
+          height: isMobile ? 52 : 60,
+          minWidth: isMobile ? 52 : 60,
+          minHeight: isMobile ? 52 : 60,
           borderRadius: "50%",
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
           color: "white",
@@ -29,7 +54,7 @@ export default function ChatWidget() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "24px",
+          fontSize: isMobile ? "22px" : "24px",
           fontWeight: "normal",
           lineHeight: 1,
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -58,26 +83,30 @@ export default function ChatWidget() {
             height: "100%",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            marginTop: open ? "calc(50% - 24px)" : "0px",
+            marginTop: open ? (isMobile ? "calc(50% - 22px)" : "calc(50% - 24px)") : "0px",
             opacity: 1,
           }}
         >
           {open ? "×" : "💬"}
         </span>
       </button>
+      )}
 
       {/* Panel */}
       <div
         style={{
           position: "fixed",
-          right: 24,
-          bottom: 100,
-          width: 400,
-          height: 600,
+          right: isMobile ? 0 : 24,
+          bottom:  isMobile ? 0 : 100,
+          left:   isMobile ? 0 : undefined,
+          top:    isMobile ? undefined : undefined,
+          width:  isMobile ? "100%" : 400,
+          height: isMobile ? "85vh" : 600,
           background: "#ffffff",
-          border: "1px solid rgba(0,0,0,0.08)",
-          borderRadius: 16,
-          boxShadow: "0 32px 64px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)",
+          borderRadius: isMobile ? "16px 16px 0 0" : 16,
+          boxShadow: isMobile
+            ? "0 -8px 32px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)"
+            : "0 32px 64px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)",
           overflow: "hidden",
           zIndex: 2147483000,
           display: "flex",
@@ -87,10 +116,10 @@ export default function ChatWidget() {
             ? "translateY(0) scale(1)"
             : "translateY(20px) scale(0.95)",
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          backdropFilter: "blur(20px)",
+          backdropFilter: isMobile ? "none" : "blur(20px)",
         }}
       >
-        {open && <Chatbot embedded={true} />}
+        {open && <Chatbot embedded={true} onClose={() => setOpen(false)} />}
       </div>
     </>
   );
