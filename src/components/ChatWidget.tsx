@@ -43,12 +43,15 @@ export default function ChatWidget() {
           height: isMobile ? 52 : 60,
           minWidth: isMobile ? 52 : 60,
           minHeight: isMobile ? 52 : 60,
-          borderRadius: "50%",
-          background: "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)",
+          borderRadius: open ? "50%" : 0,
+          background: open
+            ? "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)"
+            : "transparent",
           color: "white",
           border: "none",
-          boxShadow:
-            "0 8px 32px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(255,255,255,0.1)",
+          boxShadow: open
+            ? "0 8px 32px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(255,255,255,0.1)"
+            : "none",
           cursor: "pointer",
           zIndex: 2147483000,
           display: "flex",
@@ -65,30 +68,47 @@ export default function ChatWidget() {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = "scale(1.1)";
-          e.currentTarget.style.boxShadow =
-            "0 12px 40px rgba(59, 130, 246, 0.6), 0 0 0 1px rgba(255,255,255,0.2)";
+          e.currentTarget.style.boxShadow = open
+            ? "0 12px 40px rgba(59, 130, 246, 0.6), 0 0 0 1px rgba(255,255,255,0.2)"
+            : "none";
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = "scale(1)";
-          e.currentTarget.style.boxShadow =
-            "0 8px 32px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(255,255,255,0.1)";
+          e.currentTarget.style.boxShadow = open
+            ? "0 8px 32px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(255,255,255,0.1)"
+            : "none";
         }}
       >
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-            height: "100%",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            marginTop: open ? (isMobile ? "calc(50% - 22px)" : "calc(50% - 24px)") : "0px",
-            opacity: 1,
-          }}
-        >
-          {open ? "×" : "💬"}
-        </span>
+        {open ? (
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              transform: "rotate(0deg)",
+              marginTop: 0,
+              fontSize: isMobile ? 24 : 26,
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </span>
+        ) : (
+          <img
+            src="/image.png"
+            alt="Open chat"
+            style={{
+              width: isMobile ? 52 : 60,
+              height: isMobile ? 52 : 60,
+              objectFit: "cover",
+              pointerEvents: "none",
+              userSelect: "none",
+            }}
+          />
+        )}
       </button>
       )}
 
