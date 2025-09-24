@@ -269,6 +269,8 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
             👋 Welcome to BharatGo!
             <br />
             Ask me anything about our services.
+            <br/>
+            Your chat session will last for 15 mins
           </div>
         ) : (
           <>
