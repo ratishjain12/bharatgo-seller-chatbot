@@ -28,39 +28,38 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
     phone: false,
   });
   const userModalTimerRef = useRef<number | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = input.trim();
+  const sendMessage = async (text: string, opts?: { addUserBubble?: boolean }) => {
+    const addUserBubble = opts?.addUserBubble !== false;
+    const trimmed = text.trim();
     if (!trimmed || isLoading) return;
 
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: trimmed,
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    addStoredChatMessage(userMessage);
-    setInput("");
+    if (addUserBubble) {
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: trimmed,
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      addStoredChatMessage(userMessage);
+      setInput("");
+    }
     setIsLoading(true);
 
     try {
       const res = await sendChatQuestion(trimmed);
       if (res.requiresUserInfo) {
-        if (userModalTimerRef.current)
-          window.clearTimeout(userModalTimerRef.current);
-        userModalTimerRef.current = window.setTimeout(() => {
-          setShowUserModal(true);
-        }, 2000);
+        setPendingQuestion(trimmed);
+        setShowUserModal(true);
+        return;
       }
-      const normalizeMarkdown = (text: string) =>
-        text.replace(/^[\t ]*[•\u2022][\t ]?/gm, "- ").replace(/\r\n/g, "\n");
+      const normalizeMarkdown = (t: string) =>
+        t.replace(/^[\t ]*[•\u2022][\t ]?/gm, "- ").replace(/\r\n/g, "\n");
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: res.answer
-          ? normalizeMarkdown(res.answer)
-          : "No answer returned.",
+        content: res.answer ? normalizeMarkdown(res.answer) : "No answer returned.",
       };
       setMessages((prev) => [...prev, assistantMessage]);
       addStoredChatMessage(assistantMessage);
@@ -72,10 +71,15 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
         content: `Error: ${errorMessage}`,
       };
       setMessages((prev) => [...prev, errorMsg]);
-      addStoredChatMessage(errorMsg); // Save to storage
+      addStoredChatMessage(errorMsg);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendMessage(input);
   };
 
   const handleUserModalSubmit = (e: React.FormEvent) => {
@@ -100,13 +104,11 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
     try {
       setStoredUserInfo({ name, email, phone });
       setShowUserModal(false);
-      const savedMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `Hi ${name}, how can I help you today?`,
-      };
-      setMessages((prev) => [...prev, savedMessage]);
-      addStoredChatMessage(savedMessage);
+      if (pendingQuestion) {
+        const toSend = pendingQuestion;
+        setPendingQuestion(null);
+        void sendMessage(toSend, { addUserBubble: false });
+      }
     } catch {
       setUserError("Could not save details. Try again.");
     }
@@ -127,9 +129,9 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
   }, [messages]);
 
   useEffect(() => {
+    const timerId = userModalTimerRef.current;
     return () => {
-      if (userModalTimerRef.current)
-        window.clearTimeout(userModalTimerRef.current);
+      if (timerId) window.clearTimeout(timerId);
     };
   }, []);
 
@@ -271,6 +273,42 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
             Ask me anything about our services.
             <br/>
             Your chat session will last for 15 mins
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                justifyContent: "center",
+              }}
+            >
+              {["How to setup a store", "How to setup payment", "How to setup delivery"].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => sendMessage(q)}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 9999,
+                    border: "1px solid #e2e8f0",
+                    background: "#ffffff",
+                    color: "#334155",
+                    cursor: isLoading ? "not-allowed" : "pointer",
+                    fontSize: 13,
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoading) e.currentTarget.style.background = "#f8fafc";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLoading) e.currentTarget.style.background = "#ffffff";
+                  }}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <>
