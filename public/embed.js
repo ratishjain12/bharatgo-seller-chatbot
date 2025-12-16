@@ -106,6 +106,7 @@
     iframe.style.zIndex = String(Z);
     iframe.style.display = "none";
     iframe.style.border = "0";
+    iframe.style.pointerEvents = "auto"; // Allow interactions when visible
     // Add smooth transitions for layout changes
     iframe.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
     iframe.src = host + "/embed.html";
@@ -250,6 +251,7 @@
       img.style.display = "none";
       closeEl.style.display = "flex";
       iframe.style.display = "block";
+      iframe.style.pointerEvents = "auto"; // Allow interactions
       if (deviceType === "mobile") {
         btn.style.display = "none";
       }
@@ -259,6 +261,7 @@
       closeEl.style.display = "none";
       img.style.display = "block";
       iframe.style.display = "none";
+      iframe.style.pointerEvents = "none"; // Prevent interactions when hidden
       // Always show button when closed
       btn.style.display = "flex";
       btn.style.visibility = "visible";
@@ -298,10 +301,16 @@
     var buttonStartY = 0;
     var clickStartTime = 0;
     var hasMoved = false;
+    var dragTimeout = null;
 
     // Make button draggable
     function startDrag(e) {
-      if (deviceType === "mobile") return; // Don't drag on mobile
+      if (deviceType === "mobile") {
+        // On mobile, just toggle on click
+        isOpen = !isOpen;
+        setOpenState(isOpen, refs, deviceType);
+        return;
+      }
 
       e.preventDefault();
       e.stopPropagation();
@@ -322,6 +331,13 @@
       btn.style.transition = "none";
       btn.style.cursor = "grabbing";
 
+      // Set a timeout to distinguish click from drag
+      dragTimeout = setTimeout(function () {
+        if (isDragging) {
+          hasMoved = true; // Prevent click if user holds for too long
+        }
+      }, 150);
+
       document.addEventListener("mousemove", handleDrag);
       document.addEventListener("mouseup", endDrag);
       document.addEventListener("touchmove", handleDrag);
@@ -340,6 +356,10 @@
       // Check if user actually moved (not just a click)
       if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
         hasMoved = true;
+        if (dragTimeout) {
+          clearTimeout(dragTimeout);
+          dragTimeout = null;
+        }
       }
 
       var newX = buttonStartX + deltaX;
@@ -364,21 +384,34 @@
     function endDrag(e) {
       if (!isDragging) return;
 
+      var wasDragging = isDragging;
       isDragging = false;
+
+      if (dragTimeout) {
+        clearTimeout(dragTimeout);
+        dragTimeout = null;
+      }
+
       var btn = parts.btn;
       btn.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
       btn.style.cursor = "move";
 
-      // Save position
-      var rect = btn.getBoundingClientRect();
-      saveButtonPosition(rect.left, rect.top);
+      // Save position if moved
+      if (hasMoved) {
+        var rect = btn.getBoundingClientRect();
+        saveButtonPosition(rect.left, rect.top);
+      }
 
       // If user didn't move much and time was short, treat as click
       var clickDuration = Date.now() - clickStartTime;
-      if (!hasMoved && clickDuration < 300) {
+      if (!hasMoved && clickDuration < 200 && wasDragging) {
         isOpen = !isOpen;
         setOpenState(isOpen, refs, deviceType);
       }
+
+      // Reset for next interaction
+      hasMoved = false;
+      clickStartTime = 0;
 
       document.removeEventListener("mousemove", handleDrag);
       document.removeEventListener("mouseup", endDrag);
@@ -389,18 +422,6 @@
     // Add drag handlers
     parts.btn.addEventListener("mousedown", startDrag);
     parts.btn.addEventListener("touchstart", startDrag);
-
-    // Also handle click for mobile (no drag on mobile)
-    parts.btn.addEventListener("click", function (e) {
-      if (deviceType === "mobile" || (!isDragging && !hasMoved)) {
-        // Only toggle if it wasn't a drag
-        var clickDuration = Date.now() - clickStartTime;
-        if (clickDuration < 300 && !hasMoved) {
-          isOpen = !isOpen;
-          setOpenState(isOpen, refs, deviceType);
-        }
-      }
-    });
 
     document.body.appendChild(parts.btn);
 
