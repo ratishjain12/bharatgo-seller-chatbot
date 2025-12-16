@@ -71,6 +71,7 @@ export async function sendChatQuestion(
   const prev = getStoredObj()?.userInfo;
   if (user_info && JSON.stringify(prev) !== JSON.stringify(user_info)) {
     setStoredUserInfo(user_info);
+    // setStoredUserInfo already handles vendor ID update with email
   }
 
   return {

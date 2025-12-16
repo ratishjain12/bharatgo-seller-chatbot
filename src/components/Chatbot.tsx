@@ -7,6 +7,7 @@ import {
   setStoredUserInfo,
   getStoredChatHistory,
   addStoredChatMessage,
+  checkAndClearIfVendorChanged,
 } from "../helpers/session";
 import type { Message } from "../types";
 
@@ -18,6 +19,11 @@ export default function Chatbot({
   onClose?: () => void;
 }) {
   const [messages, setMessages] = useState<Message[]>(() => {
+    // Check if vendor changed on mount
+    const vendorChanged = checkAndClearIfVendorChanged();
+    if (vendorChanged) {
+      return [];
+    }
     return getStoredChatHistory() as Message[];
   });
   const [input, setInput] = useState("");
@@ -142,6 +148,40 @@ export default function Chatbot({
       }, 0);
     }
   }, [messages, isLoading]);
+
+  // Check for vendor changes periodically and on token changes
+  useEffect(() => {
+    // Check on mount
+    const vendorChanged = checkAndClearIfVendorChanged();
+    if (vendorChanged) {
+      setMessages([]);
+    }
+
+    // Listen for storage changes (token changes)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "token") {
+        const vendorChanged = checkAndClearIfVendorChanged();
+        if (vendorChanged) {
+          setMessages([]);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Also check periodically (every 5 seconds) for token changes in same tab
+    const interval = setInterval(() => {
+      const vendorChanged = checkAndClearIfVendorChanged();
+      if (vendorChanged) {
+        setMessages([]);
+      }
+    }, 5000);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Scroll to bottom on initial mount when messages are loaded from localStorage
   useEffect(() => {

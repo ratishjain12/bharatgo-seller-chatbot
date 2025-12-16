@@ -9,16 +9,38 @@
       new URL(document.currentScript.src).origin) ||
     window.location.origin;
 
+  function getStoredButtonPosition() {
+    try {
+      var stored = localStorage.getItem("bharatgo-chat-button-position");
+      if (stored) {
+        var pos = JSON.parse(stored);
+        return { x: pos.x, y: pos.y };
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  }
+
+  function saveButtonPosition(x, y) {
+    try {
+      localStorage.setItem(
+        "bharatgo-chat-button-position",
+        JSON.stringify({ x: x, y: y })
+      );
+    } catch (e) {
+      // ignore
+    }
+  }
+
   function createButton() {
     var btn = document.createElement("button");
     btn.setAttribute("aria-label", "Open chat");
     btn.style.position = "fixed";
-    btn.style.right = "24px";
-    btn.style.bottom = "24px";
     btn.style.border = "none";
     btn.style.borderRadius = "0"; // closed state uses image only
     btn.style.background = "transparent";
-    btn.style.cursor = "pointer";
+    btn.style.cursor = "move";
     btn.style.zIndex = String(Z);
     btn.style.display = "flex";
     btn.style.alignItems = "center";
@@ -26,8 +48,20 @@
     btn.style.padding = "0";
     btn.style.margin = "0";
     btn.style.outline = "none";
-    // Add smooth transitions
+    // Add smooth transitions (but disable during drag)
     btn.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
+
+    // Load saved position or use default
+    var savedPos = getStoredButtonPosition();
+    if (savedPos) {
+      btn.style.right = "auto";
+      btn.style.bottom = "auto";
+      btn.style.left = savedPos.x + "px";
+      btn.style.top = savedPos.y + "px";
+    } else {
+      btn.style.right = "24px";
+      btn.style.bottom = "24px";
+    }
 
     var img = document.createElement("img");
     img.src = host + "/image.png";
@@ -91,13 +125,20 @@
     var img = refs.img;
     var closeEl = refs.closeEl;
 
+    // Check if button has a saved position (using left/top instead of right/bottom)
+    var hasSavedPosition = btn.style.left && btn.style.left !== "auto";
+
     if (deviceType === "mobile") {
       btn.style.width = "52px";
       btn.style.height = "52px";
       btn.style.minWidth = "52px";
       btn.style.minHeight = "52px";
-      btn.style.right = "16px";
-      btn.style.bottom = "16px";
+      if (!hasSavedPosition) {
+        btn.style.right = "16px";
+        btn.style.bottom = "16px";
+        btn.style.left = "auto";
+        btn.style.top = "auto";
+      }
       img.style.width = "52px";
       img.style.height = "52px";
       closeEl.style.fontSize = "22px";
@@ -106,8 +147,12 @@
       btn.style.height = "56px";
       btn.style.minWidth = "56px";
       btn.style.minHeight = "56px";
-      btn.style.right = "20px";
-      btn.style.bottom = "20px";
+      if (!hasSavedPosition) {
+        btn.style.right = "20px";
+        btn.style.bottom = "20px";
+        btn.style.left = "auto";
+        btn.style.top = "auto";
+      }
       img.style.width = "56px";
       img.style.height = "56px";
       closeEl.style.fontSize = "24px";
@@ -116,8 +161,12 @@
       btn.style.height = "60px";
       btn.style.minWidth = "60px";
       btn.style.minHeight = "60px";
-      btn.style.right = "24px";
-      btn.style.bottom = "24px";
+      if (!hasSavedPosition) {
+        btn.style.right = "24px";
+        btn.style.bottom = "24px";
+        btn.style.left = "auto";
+        btn.style.top = "auto";
+      }
       img.style.width = "60px";
       img.style.height = "60px";
       closeEl.style.fontSize = "26px";
@@ -242,11 +291,144 @@
     applyButtonSize(deviceType, refs);
 
     var isOpen = false;
-    parts.btn.addEventListener("click", function () {
-      isOpen = !isOpen;
-      setOpenState(isOpen, refs, deviceType);
+    var isDragging = false;
+    var dragStartX = 0;
+    var dragStartY = 0;
+    var buttonStartX = 0;
+    var buttonStartY = 0;
+    var clickStartTime = 0;
+    var hasMoved = false;
+
+    // Make button draggable
+    function startDrag(e) {
+      if (deviceType === "mobile") return; // Don't drag on mobile
+
+      e.preventDefault();
+      e.stopPropagation();
+      isDragging = true;
+      hasMoved = false;
+      clickStartTime = Date.now();
+
+      var btn = parts.btn;
+      var rect = btn.getBoundingClientRect();
+      buttonStartX = rect.left;
+      buttonStartY = rect.top;
+
+      var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      dragStartX = clientX;
+      dragStartY = clientY;
+
+      btn.style.transition = "none";
+      btn.style.cursor = "grabbing";
+
+      document.addEventListener("mousemove", handleDrag);
+      document.addEventListener("mouseup", endDrag);
+      document.addEventListener("touchmove", handleDrag);
+      document.addEventListener("touchend", endDrag);
+    }
+
+    function handleDrag(e) {
+      if (!isDragging) return;
+
+      var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      var deltaX = clientX - dragStartX;
+      var deltaY = clientY - dragStartY;
+
+      // Check if user actually moved (not just a click)
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        hasMoved = true;
+      }
+
+      var newX = buttonStartX + deltaX;
+      var newY = buttonStartY + deltaY;
+
+      // Constrain to viewport
+      var btn = parts.btn;
+      var btnWidth = btn.offsetWidth;
+      var btnHeight = btn.offsetHeight;
+      var maxX = window.innerWidth - btnWidth;
+      var maxY = window.innerHeight - btnHeight;
+
+      newX = Math.max(0, Math.min(maxX, newX));
+      newY = Math.max(0, Math.min(maxY, newY));
+
+      btn.style.right = "auto";
+      btn.style.bottom = "auto";
+      btn.style.left = newX + "px";
+      btn.style.top = newY + "px";
+    }
+
+    function endDrag(e) {
+      if (!isDragging) return;
+
+      isDragging = false;
+      var btn = parts.btn;
+      btn.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
+      btn.style.cursor = "move";
+
+      // Save position
+      var rect = btn.getBoundingClientRect();
+      saveButtonPosition(rect.left, rect.top);
+
+      // If user didn't move much and time was short, treat as click
+      var clickDuration = Date.now() - clickStartTime;
+      if (!hasMoved && clickDuration < 300) {
+        isOpen = !isOpen;
+        setOpenState(isOpen, refs, deviceType);
+      }
+
+      document.removeEventListener("mousemove", handleDrag);
+      document.removeEventListener("mouseup", endDrag);
+      document.removeEventListener("touchmove", handleDrag);
+      document.removeEventListener("touchend", endDrag);
+    }
+
+    // Add drag handlers
+    parts.btn.addEventListener("mousedown", startDrag);
+    parts.btn.addEventListener("touchstart", startDrag);
+
+    // Also handle click for mobile (no drag on mobile)
+    parts.btn.addEventListener("click", function (e) {
+      if (deviceType === "mobile" || (!isDragging && !hasMoved)) {
+        // Only toggle if it wasn't a drag
+        var clickDuration = Date.now() - clickStartTime;
+        if (clickDuration < 300 && !hasMoved) {
+          isOpen = !isOpen;
+          setOpenState(isOpen, refs, deviceType);
+        }
+      }
     });
+
     document.body.appendChild(parts.btn);
+
+    // Click outside to close
+    document.addEventListener("click", function (e) {
+      if (!isOpen) return;
+
+      var target = e.target;
+      var btn = parts.btn;
+      var chatIframe = refs.iframe;
+
+      // Check if click is outside both button and iframe
+      var clickedOnButton = btn.contains(target);
+      var clickedOnIframe = chatIframe.contains && chatIframe.contains(target);
+
+      // Also check if click is within iframe bounds (for cross-origin iframes)
+      var iframeRect = chatIframe.getBoundingClientRect();
+      var clickInIframeBounds =
+        e.clientX >= iframeRect.left &&
+        e.clientX <= iframeRect.right &&
+        e.clientY >= iframeRect.top &&
+        e.clientY <= iframeRect.bottom;
+
+      if (!clickedOnButton && !clickedOnIframe && !clickInIframeBounds) {
+        isOpen = false;
+        setOpenState(false, refs, deviceType);
+      }
+    });
 
     function handleResize() {
       var newDeviceType = getDeviceType();
