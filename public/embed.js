@@ -33,6 +33,63 @@
     }
   }
 
+  function constrainToViewport(x, y, btnWidth, btnHeight) {
+    var minX = 0;
+    var minY = 0;
+    var maxX = window.innerWidth - btnWidth;
+    var maxY = window.innerHeight - btnHeight;
+
+    // Ensure button stays within viewport bounds
+    var constrainedX = Math.max(minX, Math.min(maxX, x));
+    var constrainedY = Math.max(minY, Math.min(maxY, y));
+
+    return { x: constrainedX, y: constrainedY };
+  }
+
+  function repositionButtonBelowChat(btn, iframe) {
+    var btnRect = btn.getBoundingClientRect();
+    var iframeRect = iframe.getBoundingClientRect();
+    var btnWidth = btnRect.width;
+    var btnHeight = btnRect.height;
+
+    // Check if button overlaps with iframe
+    var overlaps =
+      btnRect.left < iframeRect.right &&
+      btnRect.right > iframeRect.left &&
+      btnRect.top < iframeRect.bottom &&
+      btnRect.bottom > iframeRect.top;
+
+    if (overlaps) {
+      // Position button above the iframe (visually "below" when chat is bottom-right)
+      var padding = 16; // Space between iframe and button
+      var newY = iframeRect.top - btnHeight - padding;
+
+      // If positioning above would push it off screen, position below instead
+      if (newY < 0) {
+        newY = iframeRect.bottom + padding;
+      }
+
+      // Calculate new X position - try to align with iframe's right edge
+      // but keep it within viewport
+      var preferredX = iframeRect.right - btnWidth;
+      var newX = Math.max(
+        0,
+        Math.min(preferredX, window.innerWidth - btnWidth)
+      );
+
+      // Ensure it's within viewport bounds
+      var constrained = constrainToViewport(newX, newY, btnWidth, btnHeight);
+
+      btn.style.right = "auto";
+      btn.style.bottom = "auto";
+      btn.style.left = constrained.x + "px";
+      btn.style.top = constrained.y + "px";
+
+      // Save the new position
+      saveButtonPosition(constrained.x, constrained.y);
+    }
+  }
+
   function createButton() {
     var btn = document.createElement("button");
     btn.setAttribute("aria-label", "Open chat");
@@ -254,6 +311,12 @@
       iframe.style.pointerEvents = "auto"; // Allow interactions
       if (deviceType === "mobile") {
         btn.style.display = "none";
+      } else {
+        // Reposition button below chat window if it overlaps
+        // Use setTimeout to ensure iframe dimensions are calculated
+        setTimeout(function () {
+          repositionButtonBelowChat(btn, iframe);
+        }, 0);
       }
     } else {
       btn.style.borderRadius = "0";
@@ -292,6 +355,32 @@
       iframe: iframe,
     };
     applyButtonSize(deviceType, refs);
+
+    // Validate saved position is within viewport after button is sized
+    var btn = parts.btn;
+    var hasSavedPosition = btn.style.left && btn.style.left !== "auto";
+    if (hasSavedPosition) {
+      // Use setTimeout to ensure button dimensions are calculated
+      setTimeout(function () {
+        var rect = btn.getBoundingClientRect();
+        var btnWidth = rect.width;
+        var btnHeight = rect.height;
+        var currentX = parseFloat(btn.style.left) || rect.left;
+        var currentY = parseFloat(btn.style.top) || rect.top;
+        var constrained = constrainToViewport(
+          currentX,
+          currentY,
+          btnWidth,
+          btnHeight
+        );
+
+        if (constrained.x !== currentX || constrained.y !== currentY) {
+          btn.style.left = constrained.x + "px";
+          btn.style.top = constrained.y + "px";
+          saveButtonPosition(constrained.x, constrained.y);
+        }
+      }, 0);
+    }
 
     var isOpen = false;
     var isDragging = false;
@@ -367,13 +456,12 @@
 
       // Constrain to viewport
       var btn = parts.btn;
-      var btnWidth = btn.offsetWidth;
-      var btnHeight = btn.offsetHeight;
-      var maxX = window.innerWidth - btnWidth;
-      var maxY = window.innerHeight - btnHeight;
+      var btnWidth = btn.offsetWidth || btn.getBoundingClientRect().width;
+      var btnHeight = btn.offsetHeight || btn.getBoundingClientRect().height;
 
-      newX = Math.max(0, Math.min(maxX, newX));
-      newY = Math.max(0, Math.min(maxY, newY));
+      var constrained = constrainToViewport(newX, newY, btnWidth, btnHeight);
+      newX = constrained.x;
+      newY = constrained.y;
 
       btn.style.right = "auto";
       btn.style.bottom = "auto";
@@ -396,10 +484,25 @@
       btn.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
       btn.style.cursor = "move";
 
-      // Save position if moved
+      // Save position if moved (ensure it's within bounds before saving)
       if (hasMoved) {
         var rect = btn.getBoundingClientRect();
-        saveButtonPosition(rect.left, rect.top);
+        var btnWidth = rect.width;
+        var btnHeight = rect.height;
+        var constrained = constrainToViewport(
+          rect.left,
+          rect.top,
+          btnWidth,
+          btnHeight
+        );
+
+        // Update position if it was constrained
+        if (constrained.x !== rect.left || constrained.y !== rect.top) {
+          btn.style.left = constrained.x + "px";
+          btn.style.top = constrained.y + "px";
+        }
+
+        saveButtonPosition(constrained.x, constrained.y);
       }
 
       // If user didn't move much and time was short, treat as click
@@ -465,6 +568,27 @@
 
       // Always update layout for proportional scaling (even if device type didn't change)
       applyLayout(deviceType, iframe);
+
+      // Validate and correct button position if it's outside viewport after resize
+      var btn = parts.btn;
+      var hasSavedPosition = btn.style.left && btn.style.left !== "auto";
+      if (hasSavedPosition) {
+        var rect = btn.getBoundingClientRect();
+        var btnWidth = rect.width;
+        var btnHeight = rect.height;
+        var constrained = constrainToViewport(
+          rect.left,
+          rect.top,
+          btnWidth,
+          btnHeight
+        );
+
+        if (constrained.x !== rect.left || constrained.y !== rect.top) {
+          btn.style.left = constrained.x + "px";
+          btn.style.top = constrained.y + "px";
+          saveButtonPosition(constrained.x, constrained.y);
+        }
+      }
     }
 
     // Listen to mobile breakpoint changes
