@@ -10,13 +10,20 @@ import {
 } from "../helpers/session";
 import type { Message } from "../types";
 
-export default function Chatbot({ embedded = false, onClose }: { embedded?: boolean; onClose?: () => void }) {
+export default function Chatbot({
+  embedded = false,
+  onClose,
+}: {
+  embedded?: boolean;
+  onClose?: () => void;
+}) {
   const [messages, setMessages] = useState<Message[]>(() => {
     return getStoredChatHistory() as Message[];
   });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const hasScrolledInitialRef = useRef(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
@@ -30,7 +37,10 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
   const userModalTimerRef = useRef<number | null>(null);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
 
-  const sendMessage = async (text: string, opts?: { addUserBubble?: boolean }) => {
+  const sendMessage = async (
+    text: string,
+    opts?: { addUserBubble?: boolean }
+  ) => {
     const addUserBubble = opts?.addUserBubble !== false;
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
@@ -59,7 +69,9 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: res.answer ? normalizeMarkdown(res.answer) : "No answer returned.",
+        content: res.answer
+          ? normalizeMarkdown(res.answer)
+          : "No answer returned.",
       };
       setMessages((prev) => [...prev, assistantMessage]);
       addStoredChatMessage(assistantMessage);
@@ -119,14 +131,34 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
     [isLoading]
   );
 
+  // Scroll to bottom when messages change or when loading state changes
   useEffect(() => {
     if (listRef.current) {
-      listRef.current.scrollTo({
-        top: listRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+      // Use setTimeout to ensure DOM has updated
+      setTimeout(() => {
+        if (listRef.current) {
+          listRef.current.scrollTop = listRef.current.scrollHeight;
+        }
+      }, 0);
     }
-  }, [messages]);
+  }, [messages, isLoading]);
+
+  // Scroll to bottom on initial mount when messages are loaded from localStorage
+  useEffect(() => {
+    if (
+      listRef.current &&
+      messages.length > 0 &&
+      !hasScrolledInitialRef.current
+    ) {
+      // Use a slightly longer timeout for initial render
+      setTimeout(() => {
+        if (listRef.current) {
+          listRef.current.scrollTop = listRef.current.scrollHeight;
+          hasScrolledInitialRef.current = true;
+        }
+      }, 100);
+    }
+  }, [messages.length]);
 
   useEffect(() => {
     const timerId = userModalTimerRef.current;
@@ -135,7 +167,10 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
     };
   }, []);
 
-  const isSmallViewport = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+  const isSmallViewport =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(max-width: 640px)").matches;
 
   return (
     <div
@@ -146,7 +181,11 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
         margin: embedded ? 0 : isSmallViewport ? 0 : "24px auto",
         border: "none",
         borderRadius: embedded ? 0 : isSmallViewport ? 0 : 12,
-        boxShadow: embedded ? "none" : isSmallViewport ? "none" : "0 12px 24px rgba(0,0,0,0.08)",
+        boxShadow: embedded
+          ? "none"
+          : isSmallViewport
+          ? "none"
+          : "0 12px 24px rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
         background: "#ffffff",
@@ -185,43 +224,43 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {isLoading && (
-          <div
-            style={{
-              fontSize: 12,
-              opacity: 0.9,
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
             <div
               style={{
-                width: "4px",
-                height: "4px",
-                borderRadius: "50%",
-                background: "white",
-                animation: "pulse 1.5s ease-in-out infinite",
+                fontSize: 12,
+                opacity: 0.9,
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
               }}
-            ></div>
-            <div
-              style={{
-                width: "4px",
-                height: "4px",
-                borderRadius: "50%",
-                background: "white",
-                animation: "pulse 1.5s ease-in-out infinite 0.2s",
-              }}
-            ></div>
-            <div
-              style={{
-                width: "4px",
-                height: "4px",
-                borderRadius: "50%",
-                background: "white",
-                animation: "pulse 1.5s ease-in-out infinite 0.4s",
-              }}
-            ></div>
-          </div>
+            >
+              <div
+                style={{
+                  width: "4px",
+                  height: "4px",
+                  borderRadius: "50%",
+                  background: "white",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              ></div>
+              <div
+                style={{
+                  width: "4px",
+                  height: "4px",
+                  borderRadius: "50%",
+                  background: "white",
+                  animation: "pulse 1.5s ease-in-out infinite 0.2s",
+                }}
+              ></div>
+              <div
+                style={{
+                  width: "4px",
+                  height: "4px",
+                  borderRadius: "50%",
+                  background: "white",
+                  animation: "pulse 1.5s ease-in-out infinite 0.4s",
+                }}
+              ></div>
+            </div>
           )}
           {embedded && onClose && (
             <button
@@ -271,7 +310,7 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
             👋 Welcome to BharatGo!
             <br />
             Ask me anything about our services.
-            <br/>
+            <br />
             Your chat session will last for 15 mins
             <div
               style={{
@@ -282,7 +321,11 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                 justifyContent: "center",
               }}
             >
-              {["How to setup a store", "How to setup payment", "How to setup delivery"].map((q) => (
+              {[
+                "How to setup a store",
+                "How to setup payment",
+                "How to setup delivery",
+              ].map((q) => (
                 <button
                   key={q}
                   type="button"
@@ -299,10 +342,12 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                     boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                   }}
                   onMouseEnter={(e) => {
-                    if (!isLoading) e.currentTarget.style.background = "#f8fafc";
+                    if (!isLoading)
+                      e.currentTarget.style.background = "#f8fafc";
                   }}
                   onMouseLeave={(e) => {
-                    if (!isLoading) e.currentTarget.style.background = "#ffffff";
+                    if (!isLoading)
+                      e.currentTarget.style.background = "#ffffff";
                   }}
                 >
                   {q}
@@ -324,9 +369,9 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                 <div
                   style={{
                     maxWidth: "80%",
-                background:
-                  m.role === "user"
-                    ? "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)"
+                    background:
+                      m.role === "user"
+                        ? "linear-gradient(135deg, #3B82F6 0%, #A64BF6 100%)"
                         : m.role === "assistant"
                         ? "#ffffff"
                         : "#fef3c7",
@@ -337,7 +382,7 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                     boxShadow:
                       m.role === "assistant"
                         ? "0 2px 8px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)"
-                    : "0 2px 8px rgba(59, 130, 246, 0.3)",
+                        : "0 2px 8px rgba(59, 130, 246, 0.3)",
                     border:
                       m.role === "assistant"
                         ? "1px solid rgba(0,0,0,0.05)"
@@ -357,7 +402,9 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                         rehypePlugins={[rehypeRaw]}
                         components={{
                           p: ({ children }) => (
-                            <p style={{ margin: "0 0 8px 0", textAlign: "left" }}>
+                            <p
+                              style={{ margin: "0 0 8px 0", textAlign: "left" }}
+                            >
                               {children}
                             </p>
                           ),
@@ -413,7 +460,8 @@ export default function Chatbot({ embedded = false, onClose }: { embedded?: bool
                     padding: "12px 16px",
                     borderRadius: 16,
                     textAlign: "left",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)",
+                    boxShadow:
+                      "0 2px 8px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08)",
                     border: "1px solid rgba(0,0,0,0.05)",
                   }}
                 >
