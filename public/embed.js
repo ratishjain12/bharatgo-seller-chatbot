@@ -149,7 +149,8 @@
   function createIframe() {
     var iframe = document.createElement("iframe");
     iframe.title = "Chatbot";
-    iframe.allow = "clipboard-read; clipboard-write";
+    iframe.allow =
+      "accelerometer; autoplay; clipboard-read; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen";
     iframe.style.position = "fixed";
     iframe.style.right = "24px";
     iframe.style.bottom = "100px";
